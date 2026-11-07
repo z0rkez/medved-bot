@@ -8,6 +8,18 @@
 
 Два сценария в реальном темпе: боль в пояснице с температурой (итог «сегодня», терапевт → уролог) и признаки инсульта (экран вызова 103). [Видео в mp4](docs/demo.mp4). Скрипт записи: `docs/record.py` (Playwright, при запущенном сервере).
 
+## Скачать
+
+[**medved-bot.zip**](https://github.com/z0rkez/medved-bot/releases/latest/download/medved-bot.zip): исходники последней версии, без демо-видео. Все версии лежат в [Releases](https://github.com/z0rkez/medved-bot/releases).
+
+Через git:
+
+```sh
+git clone https://github.com/z0rkez/medved-bot.git
+```
+
+Для запуска нужен [uv](https://docs.astral.sh/uv/getting-started/installation/): он сам поставит Python 3.14 и зависимости.
+
 ## Запуск
 
 ```sh
