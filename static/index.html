@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>МедВед: к какому врачу</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap">
+<style>
+  :root {
+    --bg: #F2F6F5; --surface: #FFFFFF; --text: #12201D; --muted: #5B6B68; --line: #DCE6E3; --pill: #E4ECEA;
+    --accent: #0E6B5C; --accent-ink: #0A5246; --accent-soft: #E1F0EC; --accent-mid: #7DB8AC; --on-accent: #FFFFFF;
+    --warn: #B54708; --on-warn: #FFFFFF; --warn-bg: #FFF4E8; --warn-line: #F6D3AE; --warn-ink: #5C3410;
+    --danger: #B42318; --danger-text: #B42318; --danger-soft: #FDECEA; --danger-ink: #8F1B12; --danger-pale: #FFE4E1;
+    --outer: #E3EBE9; color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E1513; --surface: #17211F; --text: #E6EEEC; --muted: #9AABA7; --line: #2A3734; --pill: #22302D;
+      --accent: #3FB59E; --accent-ink: #8ED8C8; --accent-soft: #1D3530; --accent-mid: #2F6F62; --on-accent: #06231D;
+      --warn: #F0A060; --on-warn: #2A1404; --warn-bg: #2A1E12; --warn-line: #5A3A1C; --warn-ink: #F3D2B0;
+      --danger-text: #FF8A80; --danger-soft: #3A1715; --danger-ink: #FFB4AB;
+      --outer: #080D0C;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--outer); color: var(--text); font: 15px/1.45 Inter, system-ui, sans-serif; display: flex; justify-content: center; }
+  .app { width: 100%; max-width: 460px; height: 100dvh; background: var(--bg); position: relative; overflow: hidden; }
+  @media (min-width: 520px) { .app { height: calc(100dvh - 48px); margin-top: 24px; border-radius: 28px; box-shadow: 0 10px 40px rgb(0 0 0 / .12); } }
+  .view { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .view[hidden] { display: none; }
+  .scroll { overflow-y: auto; scrollbar-width: thin; }
+  h1, .display { font-family: Manrope, Inter, sans-serif; letter-spacing: -0.01em; }
+  h1 { margin: 0; font-weight: 800; }
+  p { margin: 0; }
+  svg { flex: none; }
+  a { color: var(--accent); }
+  button, a.btn { font: inherit; cursor: pointer; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  :focus-visible { outline: 3px solid var(--accent-mid); outline-offset: 2px; }
+
+  .logo { width: 44px; height: 44px; border-radius: 14px; background: var(--accent); display: grid; place-items: center; color: var(--on-accent); }
+  .logo.sm { width: 38px; height: 38px; border-radius: 12px; }
+  .icon-btn { width: 44px; height: 44px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: var(--text); display: grid; place-items: center; }
+  .icon-btn.bordered { border-color: var(--line); background: var(--surface); }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; border-radius: 16px; text-decoration: none; font-weight: 600; border: 1.5px solid var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); font-family: Manrope, sans-serif; font-weight: 700; font-size: 16px; min-height: 56px; }
+  .btn.ghost { background: transparent; color: var(--accent); }
+  .btn.plain { border-color: transparent; color: var(--muted); background: transparent; font-weight: 500; }
+  .note { font-size: 12px; color: var(--muted); text-align: center; }
+
+  /* старт */
+  #start { padding: 56px 24px 32px; gap: 28px; }
+  .brand { display: flex; align-items: center; gap: 12px; font-family: Manrope, sans-serif; font-weight: 800; font-size: 20px; }
+  #start h1 { font-size: 34px; line-height: 1.12; letter-spacing: -0.02em; }
+  #start .lead { font-size: 16px; line-height: 1.5; color: var(--muted); margin-top: 14px; }
+  .feature { display: flex; gap: 14px; align-items: center; background: var(--surface); border-radius: 16px; padding: 14px 16px; }
+  .feature .ico { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: none; }
+  .feature b { display: block; font-weight: 600; }
+  .feature span { font-size: 13px; color: var(--muted); }
+  .features { display: flex; flex-direction: column; gap: 10px; }
+  .grow { flex-grow: 1; }
+
+  /* чат */
+  .bar { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .bar-row { display: flex; align-items: center; gap: 10px; }
+  .bar-title { flex-grow: 1; }
+  .bar-title b { font-family: Manrope, sans-serif; font-weight: 800; font-size: 17px; display: block; }
+  .bar-title span { font-size: 13px; color: var(--muted); }
+  .restart { height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-weight: 500; font-size: 14px; }
+  #progress { display: grid; gap: 4px; }
+  #progress i { height: 4px; border-radius: 2px; background: var(--line); transition: background .3s; }
+  #progress i.on { background: var(--accent); }
+  #progress i.now { background: var(--accent-mid); }
+  #log { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 82%; padding: 10px 14px; white-space: pre-wrap; overflow-wrap: anywhere; animation: pop .18s ease-out; }
+  .bot { align-self: flex-start; background: var(--surface); border-radius: 18px 18px 18px 6px; }
+  .me { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-radius: 18px 18px 6px 18px; }
+  .msg em { color: var(--muted); font-size: 13px; font-style: normal; }
+  .found { display: flex; flex-direction: column; gap: 10px; white-space: normal; }
+  .found small { font-size: 13px; color: var(--muted); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 13px; font-weight: 600; }
+  .typing { display: flex; gap: 4px; padding: 14px; }
+  .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); opacity: .4; animation: blink 1s infinite; }
+  .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes blink { 50% { opacity: 1; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(4px); } }
+  #chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 16px 12px; }
+  #chips:empty { display: none; }
+  .chip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); font-weight: 600; }
+  .chip:hover { background: var(--accent); color: var(--on-accent); }
+  form { display: flex; gap: 8px; align-items: center; padding: 10px 16px max(16px, env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); margin: 0; }
+  #input { flex-grow: 1; min-width: 0; height: 46px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); font: inherit; color: var(--text); }
+  .send { width: 46px; height: 46px; border-radius: 999px; border: none; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+  .send:disabled { opacity: .5; }
+
+  /* итог */
+  #result { padding: 16px 16px 28px; gap: 14px; }
+  .panel { border-radius: 22px; padding: 20px; display: flex; flex-direction: column; gap: 12px; background: var(--surface); }
+  .panel.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
+  .panel.ok { background: var(--accent-soft); color: var(--accent-ink); }
+  .panel h1 { font-size: 26px; line-height: 1.18; color: var(--text); }
+  .panel h2 { margin: 0; font-family: Manrope, sans-serif; font-weight: 700; font-size: 17px; }
+  .badge { display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .warn .badge { background: var(--warn); color: var(--on-warn); }
+  .ok .badge { background: var(--accent); color: var(--on-accent); }
+  .dots { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+  .dots div { display: flex; gap: 8px; }
+  .dots div::before { content: ""; width: 6px; height: 6px; border-radius: 3px; background: currentColor; margin-top: 7px; flex: none; opacity: .8; }
+  .route { display: flex; flex-direction: column; }
+  .stop { display: flex; gap: 14px; }
+  .stop .rail { display: flex; flex-direction: column; align-items: center; }
+  .stop .num { width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; font-family: Manrope, sans-serif; font-weight: 800; font-size: 16px; background: var(--accent-soft); color: var(--accent-ink); border: 2px solid var(--accent); }
+  .stop:first-child .num { background: var(--accent); color: var(--on-accent); }
+  .stop .line { width: 2px; flex-grow: 1; min-height: 24px; background: var(--accent-mid); opacity: .6; }
+  .stop .what { padding: 8px 0 18px; }
+  .stop:last-child .what { padding-bottom: 0; }
+  .stop b { font-size: 16px; font-weight: 600; display: block; }
+  .stop b::first-letter { text-transform: uppercase; }
+  .stop span { font-size: 14px; color: var(--muted); }
+  .alts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); }
+  .alts span { padding: 4px 10px; border-radius: 999px; background: var(--bg); color: var(--text); }
+  .card-head { display: flex; align-items: center; justify-content: space-between; }
+  dl { display: grid; grid-template-columns: 116px minmax(0, 1fr); row-gap: 10px; column-gap: 12px; font-size: 14px; margin: 0; }
+  dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+  .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
+  /* экстренно */
+  #sos { background: var(--surface); }
+  .sos-head { background: var(--danger); color: #FFFFFF; padding: 40px 24px 28px; display: flex; flex-direction: column; gap: 14px; border-radius: 0 0 28px 28px; }
+  .sos-head.calm { background: var(--accent); color: var(--on-accent); }
+  .sos-head .mark { width: 52px; height: 52px; border-radius: 16px; background: #FFFFFF; color: var(--danger); display: grid; place-items: center; }
+  .sos-head.calm .mark { color: #0E6B5C; }
+  .sos-head h1 { font-size: 30px; line-height: 1.12; }
+  .sos-head p { font-size: 15px; opacity: .92; }
+  .calls { display: flex; flex-direction: column; gap: 12px; padding: 24px 24px 0; }
+  .call { display: flex; align-items: center; gap: 16px; min-height: 72px; padding: 0 20px; border-radius: 18px; text-decoration: none; border: 2px solid var(--danger); color: var(--danger-text); }
+  .call:first-child { background: var(--danger); color: #FFFFFF; }
+  .calm-calls .call { border-color: var(--accent); color: var(--accent); }
+  .calm-calls .call:first-child { background: var(--accent); color: var(--on-accent); }
+  .call b { font-family: Manrope, sans-serif; font-weight: 800; font-size: 24px; line-height: 1; display: block; }
+  .call span { font-size: 13px; opacity: .9; display: block; margin-top: 4px; }
+  .todo { display: flex; flex-direction: column; gap: 12px; padding: 24px; }
+  .todo h2 { margin: 0; font-family: Manrope, sans-serif; font-weight: 700; font-size: 17px; }
+  .todo div { display: flex; gap: 12px; align-items: flex-start; }
+  .todo div i { width: 26px; height: 26px; border-radius: 999px; background: var(--danger-soft); color: var(--danger-ink); display: grid; place-items: center; font-weight: 700; font-size: 13px; font-style: normal; flex: none; }
+  details { margin: 0 24px; background: var(--bg); border-radius: 16px; padding: 14px 16px; }
+  summary { cursor: pointer; font-weight: 600; min-height: 24px; }
+  details dl { margin-top: 12px; }
+  .sos-foot { padding: 16px 24px 28px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-bear" viewBox="0 0 28 28"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="8" r="3"/><circle cx="21" cy="8" r="3"/><circle cx="14" cy="16" r="9"/><path d="M14 12v6M11 15h6"/></g></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2-5 3 10 2-5h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></g></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></g></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></g></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5v.01"/></g></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<main class="app">
+  <!-- 1. старт -->
+  <section id="start" class="view scroll" aria-label="Начало">
+    <div class="brand"><div class="logo"><svg width="28" height="28"><use href="#i-bear"/></svg></div>МедВед</div>
+    <div>
+      <h1>Подскажу, к какому врачу идти</h1>
+      <p class="lead">Опишите, что беспокоит. Задам пару вопросов и скажу, насколько это срочно и с кого начать.</p>
+    </div>
+    <div class="features">
+      <div class="feature"><div class="ico"><svg width="22" height="22"><use href="#i-clock"/></svg></div><div><b>Около 2 минут</b><span>6–7 коротких вопросов, большинство кнопками</span></div></div>
+      <div class="feature"><div class="ico"><svg width="22" height="22"><use href="#i-pulse"/></svg></div><div><b>Оценю срочность</b><span>Планово, сегодня или сразу 103</span></div></div>
+      <div class="feature"><div class="ico"><svg width="22" height="22"><use href="#i-clip"/></svg></div><div><b>Карточка для врача</b><span>Жалобы и анамнез одним списком</span></div></div>
+    </div>
+    <div class="grow"></div>
+    <div class="actions">
+      <button id="go" type="button" class="btn primary">Начать <svg width="20" height="20"><use href="#i-arrow"/></svg></button>
+      <p class="note">Это не диагноз и не замена врачу. Если плохо прямо сейчас, звоните <b style="color: var(--danger-text)">103</b> или <b style="color: var(--danger-text)">112</b>.</p>
+    </div>
+  </section>
+
+  <!-- 2. диалог -->
+  <section id="chat" class="view" aria-label="Диалог" hidden>
+    <div class="bar">
+      <div class="bar-row">
+        <button type="button" class="icon-btn" data-go="start" aria-label="На главную"><svg width="22" height="22"><use href="#i-back"/></svg></button>
+        <div class="logo sm"><svg width="24" height="24"><use href="#i-bear"/></svg></div>
+        <div class="bar-title"><b>МедВед</b><span id="stepText">Начинаем</span></div>
+        <button type="button" class="restart" data-restart>Заново</button>
+      </div>
+      <div id="progress" aria-hidden="true"></div>
+    </div>
+    <div id="log" class="scroll" aria-live="polite"></div>
+    <div id="chips"></div>
+    <form id="form">
+      <label for="input" class="sr">Сообщение</label>
+      <input id="input" autocomplete="off" placeholder="Или напишите своими словами" maxlength="2000">
+      <button class="send" aria-label="Отправить"><svg width="20" height="20"><use href="#i-up"/></svg></button>
+    </form>
+  </section>
+
+  <!-- 3. итог -->
+  <section id="result" class="view scroll" aria-label="Результат" hidden></section>
+
+  <!-- 4. экстренно / кризис -->
+  <section id="sos" class="view scroll" aria-label="Экстренная помощь" hidden></section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const log = $("log"), chips = $("chips"), form = $("form"), input = $("input");
+let sid, lastResult = null, busy = false;
+try { sid = sessionStorage.getItem("sid"); } catch {}
+if (!sid) { sid = crypto.randomUUID(); try { sessionStorage.setItem("sid", sid); } catch {} }
+
+// --- утилиты разметки ---
+function h(tag, attrs = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat(Infinity)) if (kid != null && kid !== false) el.append(kid);
+  return el;
+}
+function icon(name, size = 20) {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("width", size); s.setAttribute("height", size); s.setAttribute("aria-hidden", "true");
+  const u = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  u.setAttribute("href", "#i-" + name); s.append(u); return s;
+}
+function rich(text) {  // **жирный** и _курсив_ поверх экранированного текста
+  const esc = text.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  return esc.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|\s)_(.+?)_(?=\s|$)/g, "$1<em>$2</em>");
+}
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+
+function show(view) {
+  for (const v of ["start", "chat", "result", "sos"]) $(v).hidden = v !== view;
+  $(view).scrollTop = 0;
+  if (view === "chat") input.focus();
+}
+
+// --- диалог ---
+function bubble(node, who) {
+  const d = h("div", {class: "msg " + who});
+  if (typeof node === "string") d.innerHTML = rich(node); else d.append(node);
+  log.append(d);
+  log.scrollTop = log.scrollHeight;
+  return d;
+}
+function botMessage(data) {
+  const m = data.meta || {};
+  if (m.recognized) {
+    bubble(h("div", {class: "found"},
+      h("small", {}, "Понял, отмечаю:"),
+      h("div", {class: "tags"}, m.recognized.map(t => h("span", {class: "tag"}, icon("check", 14), cap(t)))),
+      h("div", {}, m.question)), "bot");
+  } else if (m.result) {
+    const r = m.result;
+    const label = {crisis: "Вам нужна поддержка", emergency: "Нужна скорая помощь", urgent: "Нужен осмотр сегодня", routine: "Можно записаться планово"}[r.kind];
+    bubble(h("div", {class: "found"}, h("div", {}, h("b", {}, label)),
+      h("button", {type: "button", class: "chip", onclick: () => openResult()}, "Открыть результат")), "bot");
+  } else {
+    bubble(data.text, "bot");
+  }
+}
+function progress(m) {
+  if (!m || !m.total) return;
+  const bar = $("progress");
+  bar.style.gridTemplateColumns = `repeat(${m.total}, minmax(0, 1fr))`;
+  bar.replaceChildren(...Array.from({length: m.total}, (_, i) =>
+    h("i", {class: i + 1 < m.step || lastResult ? "on" : i + 1 === m.step ? "now" : ""})));
+  $("stepText").textContent = lastResult ? "Готово" : `Вопрос ${m.step} из ${m.total}`;
+}
+async function send(text, echo = true) {
+  if (busy) return;
+  busy = true;
+  if (echo) bubble(text, "me");
+  chips.replaceChildren();
+  const typing = bubble(h("div", {class: "typing"}, h("i"), h("i"), h("i")), "bot");
+  let data;
+  try {
+    const r = await fetch("/api/message", {method: "POST", headers: {"Content-Type": "application/json"},
+                                           body: JSON.stringify({session_id: sid, text})});
+    if (!r.ok) throw new Error(r.status);
+    data = await r.json();
+  } catch {
+    typing.remove(); busy = false;
+    bubble("Не получилось связаться с сервером. Попробуйте ещё раз.", "bot");
+    chips.append(h("button", {type: "button", class: "chip", onclick: () => send(text, false)}, "Повторить"));
+    return;
+  }
+  typing.remove(); busy = false;
+  if (data.meta && data.meta.result) lastResult = data.meta.result;
+  botMessage(data);
+  progress(data.meta);
+  for (const b of data.buttons) {
+    if (lastResult && b === "Начать заново") continue;
+    chips.append(h("button", {type: "button", class: "chip", onclick: () => send(b)}, b));
+  }
+  log.scrollTop = log.scrollHeight;
+  if (lastResult && data.meta.result) {
+    chips.append(h("button", {type: "button", class: "chip", onclick: restart}, "Начать заново"));
+    openResult();
+  } else input.focus();
+}
+function restart() {
+  lastResult = null;
+  log.replaceChildren();
+  show("chat");
+  send("/start", false);
+}
+form.onsubmit = e => { e.preventDefault(); const t = input.value.trim(); if (t && !busy) { input.value = ""; send(t); } };
+$("go").onclick = restart;
+document.addEventListener("click", e => {
+  const go = e.target.closest("[data-go]"); if (go) show(go.dataset.go);
+  if (e.target.closest("[data-restart]")) restart();
+});
+
+// --- экраны итога ---
+function cardList(rows) { return h("dl", {}, rows.map(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])); }
+function cardText(rows) { return "Карточка для врача\n" + rows.map(([k, v]) => `${k}: ${v}`).join("\n"); }
+function backBar(title) {
+  return h("div", {class: "bar-row"},
+    h("button", {type: "button", class: "icon-btn", "aria-label": "Назад к диалогу", onclick: () => show("chat")}, icon("back", 22)),
+    h("div", {class: "display", style: "font-weight:800;font-size:17px"}, title));
+}
+function openResult() {
+  const r = lastResult; if (!r) return;
+  if (r.kind === "emergency" || r.kind === "crisis") { renderSos(r); show("sos"); }
+  else { renderResult(r); show("result"); }
+}
+function renderResult(r) {
+  const urgent = r.kind === "urgent";
+  const why = r.reasons.length ? `Причина: ${r.reasons.join(", ")}.` :
+    r.symptoms.length ? `Распознано: ${r.symptoms.join(", ")}.` :
+    "Жалобы не удалось точно распознать, поэтому начните с врача первичного звена.";
+  const head = h("div", {class: "panel " + (urgent ? "warn" : "ok")},
+    h("span", {class: "badge"}, icon(urgent ? "clock" : "check", 16), urgent ? "Сегодня" : "Планово"),
+    h("h1", {}, urgent ? "Нужен осмотр врача сегодня" : "Можно записаться на приём"),
+    h("p", {style: "font-size:15px"}, why),
+    h("div", {class: "dots"}, urgent
+      ? [h("div", {}, "Вызовите врача на дом или сходите в кабинет неотложной помощи поликлиники"),
+         h("div", {}, "Станет хуже: звоните 103")]
+      : [h("div", {}, "Запишитесь через Госуслуги, сайт поликлиники или регистратуру")]));
+
+  const route = h("div", {class: "panel"}, h("h2", {}, r.route.length > 1 ? "Маршрут" : "Куда обратиться"),
+    h("div", {class: "route"}, r.route.map((x, i) => h("div", {class: "stop"},
+      h("div", {class: "rail"}, h("div", {class: "num"}, String(i + 1)), i < r.route.length - 1 ? h("div", {class: "line"}) : null),
+      h("div", {class: "what"}, h("b", {}, x.name), h("span", {}, x.note))))),
+    r.alternatives.length ? h("div", {class: "alts"}, "Также может понадобиться:", r.alternatives.map(a => h("span", {}, a))) : null);
+
+  const copy = h("button", {type: "button", class: "icon-btn bordered", "aria-label": "Скопировать карточку"}, icon("copy"));
+  copy.onclick = async () => {
+    try { await navigator.clipboard.writeText(cardText(r.card)); copy.replaceChildren(icon("check")); copy.setAttribute("aria-label", "Скопировано"); }
+    catch { copy.setAttribute("aria-label", "Не удалось скопировать"); }
+  };
+  const card = h("div", {class: "panel"}, h("div", {class: "card-head"}, h("h2", {}, "Карточка для врача"), copy), cardList(r.card));
+
+  const actions = h("div", {class: "actions"},
+    h("a", {class: "btn primary", href: "https://www.gosuslugi.ru/10700/1", target: "_blank", rel: "noopener"},
+      icon("cal"), `Записаться: ${r.route[0].name}`),
+    h("button", {type: "button", class: "btn ghost", onclick: restart}, "Начать заново"),
+    h("p", {class: "note"}, "Подсказка не ставит диагноз. Решение о лечении принимает врач."));
+
+  $("result").replaceChildren(backBar("Результат"), head, route, card, h("div", {class: "grow"}), actions);
+}
+function renderSos(r) {
+  const crisis = r.kind === "crisis";
+  const head = h("div", {class: "sos-head" + (crisis ? " calm" : "")},
+    h("div", {class: "mark"}, icon(crisis ? "heart" : "alert", 28)),
+    h("h1", {}, crisis ? "Вы не обязаны справляться с этим в одиночку" : "Вызывайте скорую прямо сейчас"),
+    h("p", {}, crisis ? "Вам сейчас очень тяжело. Позвоните, там выслушают и помогут. Это бесплатно и круглосуточно."
+                      : `${cap(r.reasons.join(", "))}. Важна каждая минута.`));
+  const call = (num, label) => h("a", {class: "call", href: "tel:" + num.replace(/-/g, "")}, icon("phone", 26),
+    h("div", {}, h("b", {}, num), h("span", {}, label)));
+  const calls = crisis
+    ? h("div", {class: "calls calm-calls"}, call("112", "Экстренная помощь, бесплатно"),
+        r.child ? call("8-800-2000-122", "Детский телефон доверия, анонимно") : null)
+    : h("div", {class: "calls"}, call("103", "Скорая помощь"), call("112", "Единый номер, работает без SIM"));
+  const todo = crisis
+    ? h("div", {class: "todo"}, h("p", {}, "Если рядом есть близкий человек, расскажите ему, что происходит."))
+    : h("div", {class: "todo"}, h("h2", {}, "Пока едет бригада"), r.steps.map((s, i) => h("div", {}, h("i", {}, String(i + 1)), s)));
+  const card = crisis ? null : h("details", {}, h("summary", {}, "Карточка для врача"), cardList(r.card));
+  $("sos").replaceChildren(...[head, calls, todo, card].filter(Boolean), h("div", {class: "grow"}),
+    h("div", {class: "sos-foot actions"},
+      h("button", {type: "button", class: "btn plain", onclick: () => show("chat")}, "Вернуться к диалогу"),
+      h("button", {type: "button", class: "btn ghost", onclick: restart}, "Начать заново")));
+}
+</script>
+</body>
+</html>
