@@ -1,4 +1,4 @@
-"""Запись демо МедВед в человеческом темпе. Видео = ровно вьюпорт страницы."""
+"""Запись демо МедВед в человеческом темпе. Видео = ровно вьюпорт страницы, курсор не рисуется."""
 import random
 import sys
 import time
@@ -10,17 +10,6 @@ OUT = Path(sys.argv[1])
 W, H = 420, 860
 random.seed(7)
 
-CURSOR = """
-addEventListener('DOMContentLoaded', () => {
-  const c = document.createElement('div');
-  c.style.cssText = 'position:fixed;left:0;top:0;width:22px;height:22px;z-index:99999;pointer-events:none;transform:translate(-200px,-200px);transition:width .1s,height .1s';
-  c.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 2l16 10-7 1.5L9.5 21z" fill="#12201D" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-  document.body.append(c);
-  addEventListener('mousemove', e => c.style.transform = `translate(${e.clientX - 3}px, ${e.clientY - 2}px)`, true);
-  addEventListener('mousedown', () => c.style.scale = '0.85', true);
-  addEventListener('mouseup', () => c.style.scale = '1', true);
-});
-"""
 
 pos = [W / 2, H / 2]
 
@@ -71,14 +60,15 @@ def scroll(page, el, dy, steps=10):
 
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path="/usr/bin/chromium")
+    # без обёртки /usr/bin/chromium: она подмешивает flags.conf с масштабом 0.9
+    browser = p.chromium.launch(executable_path="/usr/lib/chromium/chromium")
     ctx = browser.new_context(viewport={"width": W, "height": H}, device_scale_factor=1, color_scheme="light",
                               record_video_dir=str(OUT), record_video_size={"width": W, "height": H},
                               permissions=["clipboard-read", "clipboard-write"], locale="ru-RU")
-    ctx.add_init_script(CURSOR)
     page = ctx.new_page()
     page.goto("http://localhost:8765/")
     page.wait_for_load_state("networkidle")
+    page.evaluate("document.fonts.ready.then(() => 1)")
     page.mouse.move(*pos)
     pause(2.5)
 
