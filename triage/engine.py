@@ -52,6 +52,8 @@ class Session:
     chronic_asked: bool = False
     pregnancy: str | None = None  # "yes" | "no" | "maybe"
     retries: int = 0
+    patient_name: str = ""
+    age_from_core: bool = False
 
     @property
     def pregnant(self) -> bool:
@@ -323,10 +325,20 @@ def format_result(s: Session, a: Assessment) -> str:
 
 # ---------- диалог ----------
 
-def _ask_age() -> Reply:
-    return Reply("Здравствуйте! Я помогу понять, к какому врачу обратиться.\n"
-                 "Если сейчас угрожает жизнь (сильная боль в груди, трудно дышать, потеря сознания), "
-                 "сразу звоните **103**.\n\nСколько лет пациенту? Для ребёнка до года можно указать месяцы.")
+def _ask_sex(s: Session, prefix: str = "") -> Reply:
+    s.state = "sex"
+    return Reply(prefix + "Пол пациента?", ["Мужской", "Женский"])
+
+
+def _start(s: Session) -> Reply:
+    greeting = f"Здравствуйте, {s.patient_name}!" if s.patient_name else "Здравствуйте!"
+    intro = (greeting + " Я помогу понять, к какому врачу обратиться.\n"
+             "Если сейчас угрожает жизнь (сильная боль в груди, трудно дышать, потеря сознания), "
+             "сразу звоните **103**.\n\n")
+    if s.age is not None:
+        return _ask_sex(s, intro)
+    s.state = "age"
+    return Reply(intro + "Сколько лет пациенту? Для ребёнка до года можно указать месяцы.")
 
 
 def _finish(s: Session) -> Reply:
@@ -378,10 +390,12 @@ def handle(s: Session, text: str) -> Reply:
 
 def _handle(s: Session, text: str) -> Reply:
     text = text.strip()
-    if normalize(text) in RESTART or s.state == "start":
-        s.__init__()
-        s.state = "age"
-        return _ask_age()
+    if s.state == "start":
+        return _start(s)
+    if normalize(text) in RESTART:
+        s.__init__(age=s.age if s.age_from_core else None,
+                   patient_name=s.patient_name, age_from_core=s.age_from_core)
+        return _start(s)
 
     if s.state == "done":
         return Reply("Консультация завершена. Хотите пройти заново?", ["Начать заново"], done=True)
@@ -391,8 +405,7 @@ def _handle(s: Session, text: str) -> Reply:
         if age is None:
             return Reply("Напишите возраст числом, например: 34 или 8 месяцев.")
         s.age = age
-        s.state = "sex"
-        return Reply("Пол пациента?", ["Мужской", "Женский"])
+        return _ask_sex(s)
 
     if s.state == "sex":
         sex = parse_sex(text)

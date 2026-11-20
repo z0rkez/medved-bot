@@ -268,3 +268,16 @@ def test_no_fever_button_is_not_37():
     from triage.engine import parse_temp
     assert parse_temp("Нет, до 37") < 37
     assert parse_temp("37.5") == 37.5
+
+
+@pytest.mark.parametrize("age", [0, 0.5, 39])
+def test_prefilled_age_starts_with_sex(age):
+    s = Session(age=age, patient_name="Анна Петровна", age_from_core=True)
+    for start in ("/start", "Начать заново"):
+        r = handle(s, start)
+        assert r.text.startswith("Здравствуйте, Анна Петровна!")
+        assert "Сколько лет" not in r.text and "Пол пациента?" in r.text
+        assert r.buttons == ["Мужской", "Женский"]
+        assert r.meta["step"] == 2 and s.age == age and s.sex is None
+        handle(s, "Женский")
+        assert s.state == "complaints"

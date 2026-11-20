@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+const url = new URL(location.href);
+const openedFromMax = url.searchParams.has("token");
+let launchToken = url.searchParams.get("token");
+if (openedFromMax) {
+  url.searchParams.delete("token");
+  history.replaceState(history.state, "", url);
+}
+</script>
 <title>МедВед: к какому врачу</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap">
@@ -221,8 +230,12 @@
 const $ = id => document.getElementById(id);
 const log = $("log"), chips = $("chips"), form = $("form"), input = $("input");
 let sid, lastResult = null, busy = false;
-try { sid = sessionStorage.getItem("sid"); } catch {}
-if (!sid) { sid = crypto.randomUUID(); try { sessionStorage.setItem("sid", sid); } catch {} }
+if (openedFromMax) {
+  sid = crypto.randomUUID();
+} else {
+  try { sid = sessionStorage.getItem("sid"); } catch {}
+  if (!sid) { sid = crypto.randomUUID(); try { sessionStorage.setItem("sid", sid); } catch {} }
+}
 
 // --- утилиты разметки ---
 function h(tag, attrs = {}, ...kids) {
@@ -285,7 +298,7 @@ function progress(m) {
     h("i", {class: i + 1 < m.step || lastResult ? "on" : i + 1 === m.step ? "now" : ""})));
   $("stepText").textContent = lastResult ? "Готово" : `Вопрос ${m.step} из ${m.total}`;
 }
-async function send(text, echo = true) {
+async function send(text, echo = true, token = null) {
   if (busy) return;
   busy = true;
   if (echo) bubble(text, "me");
@@ -293,12 +306,17 @@ async function send(text, echo = true) {
   const typing = bubble(h("div", {class: "typing"}, h("i"), h("i"), h("i")), "bot");
   let data;
   try {
-    const r = await fetch("/api/message", {method: "POST", headers: {"Content-Type": "application/json"},
-                                           body: JSON.stringify({session_id: sid, text})});
+    const payload = token ? {session_id: sid, token} : {session_id: sid, text};
+    const r = await fetch(token ? "/api/init" : "/api/message", {method: "POST", headers: {"Content-Type": "application/json"},
+                                           body: JSON.stringify(payload)});
     if (!r.ok) throw new Error(r.status);
     data = await r.json();
   } catch {
     typing.remove(); busy = false;
+    if (token) {
+      bubble("Не удалось загрузить данные пациента. Продолжим опрос вручную.", "bot");
+      return send("/start", false);
+    }
     bubble("Не получилось связаться с сервером. Попробуйте ещё раз.", "bot");
     chips.append(h("button", {type: "button", class: "chip", onclick: () => send(text, false)}, "Повторить"));
     return;
@@ -399,6 +417,11 @@ function renderSos(r) {
     h("div", {class: "sos-foot actions"},
       h("button", {type: "button", class: "btn plain", onclick: () => show("chat")}, "Вернуться к диалогу"),
       h("button", {type: "button", class: "btn ghost", onclick: restart}, "Начать заново")));
+}
+if (openedFromMax) {
+  show("chat");
+  send("/start", false, launchToken);
+  launchToken = null;
 }
 </script>
 </body>
